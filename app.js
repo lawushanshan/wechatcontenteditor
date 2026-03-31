@@ -556,6 +556,7 @@ function withTimeout(promise, ms, message = '操作超时') {
 const editorApp = createApp({
   data() {
     return {
+      isDark: false,
       markdownInput: '',
       renderedContent: '',
       currentStyle: 'wechat-default',
@@ -626,6 +627,13 @@ const editorApp = createApp({
   },
 
   async mounted() {
+    // 初始化主题
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      this.isDark = true;
+      document.body.classList.add('dark-mode');
+    }
+    
     // 加载星标样式
     this.loadStarredStyles();
 
@@ -745,6 +753,18 @@ const editorApp = createApp({
   },
 
   methods: {
+    // 切换主题
+    toggleTheme() {
+      this.isDark = !this.isDark;
+      if (this.isDark) {
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+      }
+    },
+
     loadStarredStyles() {
       try {
         const saved = localStorage.getItem('starredStyles');
@@ -1663,6 +1683,7 @@ const markdown = \`![图片](img://\${imageId})\`;
         console.error('复制失败:', error);
         // 尝试降级方案
         try {
+          const doc = document;
           const fallbackHTML = doc ? doc.body.innerHTML : this.renderedContent;
           this.clipboardFallback(fallbackHTML);
         } catch (fallbackError) {
@@ -2051,8 +2072,10 @@ const markdown = \`![图片](img://\${imageId})\`;
           reader.readAsDataURL(blob);
         });
       } catch (error) {
-        // CORS、网络或超时错误时，抛出错误让外层处理
-        throw new Error(`图片加载失败 (${src}): ${error.message}`);
+        // CORS、网络或超时错误时，返回原 URL
+        // 公众号可以处理外部图片 URL
+        console.warn(`图片无法转换为 base64，使用原 URL: ${src}`, error.message);
+        return src;
       }
     },
 
