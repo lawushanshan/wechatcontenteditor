@@ -1,11 +1,8 @@
-.DS_Store
-*.bak*
-node_modules/
-dist/
-*.log
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-.claude/
+-e *.backup
+*.old
+*_new.html
+app_clean.js
+deploy.sh
+*修复报告.md
+*项目说明.md
+*产品说明.md
