@@ -1654,29 +1654,41 @@ const markdown = \`![图片](img://\${imageId})\`;
         const plainText = doc.body.textContent || '';
 
         // 检查焦点：异步处理图片后窗口可能失焦
-        if (document.hasFocus()) {
-          const htmlBlob = new Blob([simplifiedHTML], { type: 'text/html' });
-          const textBlob = new Blob([plainText], { type: 'text/plain' });
+        // 同时检查 ClipboardItem 和 navigator.clipboard 支持性
+        const hasClipboardAPI = typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write;
+        
+        if (document.hasFocus() && hasClipboardAPI) {
+          try {
+            const htmlBlob = new Blob([simplifiedHTML], { type: 'text/html' });
+            const textBlob = new Blob([plainText], { type: 'text/plain' });
 
-          const clipboardItem = new ClipboardItem({
-            'text/html': htmlBlob,
-            'text/plain': textBlob
-          });
+            const clipboardItem = new ClipboardItem({
+              'text/html': htmlBlob,
+              'text/plain': textBlob
+            });
 
-          await navigator.clipboard.write([clipboardItem]);
+            await navigator.clipboard.write([clipboardItem]);
 
-          this.copySuccess = true;
-          this.showToast('复制成功', 'success');
+            this.copySuccess = true;
+            this.showToast('复制成功', 'success');
 
-          // 自动保存到历史记录
-          this.saveToHistory();
+            // 自动保存到历史记录
+            this.saveToHistory();
 
-          setTimeout(() => {
-            this.copySuccess = false;
-          }, 2000);
+            setTimeout(() => {
+              this.copySuccess = false;
+            }, 2000);
+          } catch (clipboardError) {
+            console.warn('Clipboard API 写入失败，降级到 execCommand:', clipboardError);
+            this.clipboardFallback(simplifiedHTML);
+          }
         } else {
-          // 焦点丢失，降级到 execCommand
-          console.warn('窗口失焦，使用降级复制方案');
+          // 焦点丢失或浏览器不支持 Clipboard API，降级到 execCommand
+          if (!document.hasFocus()) {
+            console.warn('窗口失焦，使用降级复制方案');
+          } else {
+            console.warn('浏览器不支持 Clipboard API，使用降级复制方案');
+          }
           this.clipboardFallback(simplifiedHTML);
         }
       } catch (error) {
@@ -1708,25 +1720,37 @@ const markdown = \`![图片](img://\${imageId})\`;
         const html = doc.body.innerHTML;
         const plainText = doc.body.innerText || doc.body.textContent || '';
 
-        if (document.hasFocus()) {
-          const blob = new Blob([html], { type: 'text/html' });
-          const textBlob = new Blob([plainText], { type: 'text/plain' });
-          await navigator.clipboard.write([
-            new ClipboardItem({
-              'text/html': blob,
-              'text/plain': textBlob
-            })
-          ]);
+        // 检查 Clipboard API 支持性
+        const hasClipboardAPI = typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write;
+        
+        if (document.hasFocus() && hasClipboardAPI) {
+          try {
+            const blob = new Blob([html], { type: 'text/html' });
+            const textBlob = new Blob([plainText], { type: 'text/plain' });
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                'text/html': blob,
+                'text/plain': textBlob
+              })
+            ]);
 
-          this.copyXSuccess = true;
-          this.showToast('已复制 X Articles 格式', 'success');
-          this.saveToHistory();
+            this.copyXSuccess = true;
+            this.showToast('已复制 X Articles 格式', 'success');
+            this.saveToHistory();
 
-          setTimeout(() => {
-            this.copyXSuccess = false;
-          }, 2000);
+            setTimeout(() => {
+              this.copyXSuccess = false;
+            }, 2000);
+          } catch (clipboardError) {
+            console.warn('Clipboard API 写入失败，降级到 execCommand:', clipboardError);
+            this.clipboardFallbackX(html);
+          }
         } else {
-          console.warn('窗口失焦，使用降级复制方案');
+          if (!document.hasFocus()) {
+            console.warn('窗口失焦，使用降级复制方案');
+          } else {
+            console.warn('浏览器不支持 Clipboard API，使用降级复制方案');
+          }
           this.clipboardFallbackX(html);
         }
       } catch (error) {
