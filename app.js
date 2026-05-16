@@ -1709,11 +1709,6 @@ const markdown = \`![图片](img://\${imageId})\`;
           this.showToast('复制失败', 'error');
         }
       }
-        } catch (fallbackError) {
-          console.error('降级复制也失败:', fallbackError);
-          this.showToast('复制失败', 'error');
-        }
-      }
     },
 
     // 复制到 X Articles（纯净语义化 HTML）
