@@ -1654,10 +1654,18 @@ const markdown = \`![图片](img://\${imageId})\`;
         const plainText = doc.body.textContent || '';
 
         // 检查焦点：异步处理图片后窗口可能失焦
-        // 同时检查 ClipboardItem 和 navigator.clipboard 支持性
-        const hasClipboardAPI = typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write;
+        // 使用 try-catch 安全检测 Clipboard API 可用性
+        let useClipboardAPI = false;
+        try {
+          useClipboardAPI = document.hasFocus() &&
+                            typeof ClipboardItem !== 'undefined' &&
+                            typeof navigator.clipboard !== 'undefined' &&
+                            typeof navigator.clipboard.write === 'function';
+        } catch (e) {
+          useClipboardAPI = false;
+        }
         
-        if (document.hasFocus() && hasClipboardAPI) {
+        if (useClipboardAPI) {
           try {
             const htmlBlob = new Blob([simplifiedHTML], { type: 'text/html' });
             const textBlob = new Blob([plainText], { type: 'text/plain' });
@@ -1693,11 +1701,14 @@ const markdown = \`![图片](img://\${imageId})\`;
         }
       } catch (error) {
         console.error('复制失败:', error);
-        // 尝试降级方案
+        // 尝试降级方案 - 直接使用 renderedContent
         try {
-          const doc = document;
-          const fallbackHTML = doc ? doc.body.innerHTML : this.renderedContent;
-          this.clipboardFallback(fallbackHTML);
+          this.clipboardFallback(this.renderedContent || '');
+        } catch (fallbackError) {
+          console.error('降级复制也失败:', fallbackError);
+          this.showToast('复制失败', 'error');
+        }
+      }
         } catch (fallbackError) {
           console.error('降级复制也失败:', fallbackError);
           this.showToast('复制失败', 'error');
@@ -1720,10 +1731,18 @@ const markdown = \`![图片](img://\${imageId})\`;
         const html = doc.body.innerHTML;
         const plainText = doc.body.innerText || doc.body.textContent || '';
 
-        // 检查 Clipboard API 支持性
-        const hasClipboardAPI = typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write;
+        // 检查 Clipboard API 支持性（安全检测）
+        let useClipboardAPI = false;
+        try {
+          useClipboardAPI = document.hasFocus() &&
+                            typeof ClipboardItem !== 'undefined' &&
+                            typeof navigator.clipboard !== 'undefined' &&
+                            typeof navigator.clipboard.write === 'function';
+        } catch (e) {
+          useClipboardAPI = false;
+        }
         
-        if (document.hasFocus() && hasClipboardAPI) {
+        if (useClipboardAPI) {
           try {
             const blob = new Blob([html], { type: 'text/html' });
             const textBlob = new Blob([plainText], { type: 'text/plain' });
